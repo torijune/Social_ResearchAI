@@ -2,3 +2,4 @@
 *.xlsx
 Notebook/
 *.DS_Store
+__pycache__/

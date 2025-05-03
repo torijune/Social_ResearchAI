@@ -1,3 +1,5 @@
 pandas
 langchain_ollama
 openai
+python-dotenv
+openpyxl

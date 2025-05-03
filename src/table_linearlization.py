@@ -27,11 +27,11 @@ def linearize_markdown(df):
 def linearize_json(df):
     return df.to_json(orient='records')
 
-# column name is cell - 열의 이름과 해당 열의 cell 값을 is로 연결해서 최대한 자연어 sentence처럼 구성
+# 열의 이름과 해당 셀 값을 "열 이름은 값입니다"로 자연스럽게 연결
 def linearize_natural_language(df):
     sents = []
     for _, row in df.iterrows():
-        sent = ", ".join([f"{col} is {val}" for col, val in row.items()])
+        sent = ", ".join([f"{col}은(는) {val}입니다" for col, val in row.items()])
         sents.append(sent)
     return " [SEP] ".join(sents)
 

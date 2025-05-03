@@ -1,42 +1,50 @@
-# 📊 Table_Exercise: 설문조사 표 자동 요약 프로젝트
+# 📊 Social_ResearchAI: 설문조사 표 자동 분석 & 요약 시스템
 
-이 프로젝트는 엑셀 형식으로 제공되는 설문조사 결과 테이블을 자동으로 전처리하고, LLM을 활용하여 자연어 요약 문장을 생성하는 파이프라인을 제공합니다.
+이 프로젝트는 엑셀 기반의 설문조사 결과를 자동 전처리하고, **수치 기반 분석**과 **LLM을 활용한 요약 생성**을 결합하여 **신뢰성 있는 통계 해석 리포트**를 자동 생성합니다.
 
 ---
 
 ## 📌 주요 기능
 
-1. **엑셀 파일 자동 파싱**
-   - 질문 항목(A1., A2. 등)을 기준으로 각 설문 테이블 자동 분할
-   - 병합된 컬럼 헤더 구성
-   - 전체 요약 및 기타/무응답 행 제거
-   - 숫자 값은 소수점 1자리로 반올림
+1. **엑셀 테이블 자동 파싱**
+   - 질문 항목 키(A1, B13 등)를 기준으로 설문 문항별 테이블 자동 분할
+   - 병합 헤더 해소, 무응답/기타 항목 제거, 수치 정제(소수점 1자리 반올림)
 
-2. **테이블 Linearization**
-   - 테이블을 다양한 포맷(자연어, 마크다운, JSON 등)으로 변환하여 LLM이 이해할 수 있도록 정제
+2. **수치 기반 분석 기능**
+   - 모든 수치형 컬럼에 대해 **평균, 표준편차, 최대/최소 그룹, 분산 범위(range)** 등을 자동 분석
+   - '대분류(예: 성별, 연령)'별로 '소분류(예: 여성, 30대)' 간의 유의미한 수치 차이 추출
+   - 기준값 이상(예: 표준편차 3 이상, 범위 5 이상)일 때만 **Insight 요약에 포함**
 
-3. **LLM 기반 문장 생성**
-   - 변환된 테이블 데이터를 LLM에게 전달하여 설문 결과 요약문 자동 생성
-   - OpenAI API 또는 Ollama LLaMA3 모델 사용 가능
+3. **테이블 → 자연어 변환 (Linearization)**
+   - 테이블을 자연어 기반 서술문 형태로 변환하여 LLM 입력에 최적화
+   - 다양한 포맷 지원: 자연어 문장, 마크다운, JSON 등
+
+4. **LLM 기반 요약 생성 (OpenAI 또는 Ollama)**
+   - 수치 기반 분석 결과를 함께 제공하여, **근거 중심의 정량 요약문** 생성
+   - Chain-of-Thought (CoT) 유도 프롬프트 포함: 수치 간 비교, 극단값 강조, 단락 요약 유도
 
 ---
 
 ## 📁 디렉토리 구조
-Table_Exercise/
-├── data/                    # 엑셀 데이터 (Git 업로드 제외)
-├── research_AI/
-│   ├── preprocess.py        # 테이블 전처리 및 분할 함수
-│   ├── linearizers.py       # 테이블 → 텍스트 변환 함수
-│   ├── generate_summary.py  # LLM 호출 및 요약 생성 함수
-│   └── README.md            # 프로젝트 설명서
+
+Social_ResearchAI/
+├── data/                               
+├── main/
+│   ├── Social_ResearchAI.py            
+│   └── numeric_analysis_summarization.py  
+├── src/
+│   ├── table_parser.py                 
+│   ├── table_linearlization.py        
+│   ├── table_numeric_analysis.py      
+│   └── LLMs.py                         
 ├── api/
-│   └── prompts.py           # 다양한 LLM용 프롬프트 정의
+│   └── prompts.py                      
 ├── .gitignore
 └── requirements.txt
 
 ---
 
-## 🚀 실행 방법
+## 🚀 실행 예시
 
 ```bash
 # 가상환경 설정 (선택)
@@ -46,5 +54,8 @@ source venv/bin/activate
 # 라이브러리 설치
 pip install -r requirements.txt
 
-# 엑셀 테이블 전처리 후 요약 생성 예시
-python research_AI/generate_summary.py
+# 전체 파이프라인 실행 (엑셀 → 분석 → 요약)
+python main/Social_ResearchAI.py
+
+✅ 요약 결과 for [A1]:
+대기환경에 대한 관심도가 연령, 건강 상태, 주요 체류 공간 등 다양한 요소에 따라 차이를 보였다. 특히 60대 이상은 평균 4.1점으로 다른 연령보다 높은 관심을 보였으며, 기저질환자는 '매우 관심 있다' 비율이 상대적으로 높았고 실외 활동이 많은 그룹도 높은 관심도를 보인 것으로 나타났다.

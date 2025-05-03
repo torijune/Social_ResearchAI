@@ -25,25 +25,6 @@
 
 ---
 
-## 📁 디렉토리 구조
-
-Social_ResearchAI/
-├── data/                               
-├── main/
-│   ├── Social_ResearchAI.py            
-│   └── numeric_analysis_summarization.py  
-├── src/
-│   ├── table_parser.py                 
-│   ├── table_linearlization.py        
-│   ├── table_numeric_analysis.py      
-│   └── LLMs.py                         
-├── api/
-│   └── prompts.py                      
-├── .gitignore
-└── requirements.txt
-
----
-
 ## 🚀 실행 예시
 
 ```bash
@@ -56,6 +37,7 @@ pip install -r requirements.txt
 
 # 전체 파이프라인 실행 (엑셀 → 분석 → 요약)
 python main/Social_ResearchAI.py
+```
 
 ✅ 요약 결과 for [A1]:
 대기환경에 대한 관심도가 연령, 건강 상태, 주요 체류 공간 등 다양한 요소에 따라 차이를 보였다. 특히 60대 이상은 평균 4.1점으로 다른 연령보다 높은 관심을 보였으며, 기저질환자는 '매우 관심 있다' 비율이 상대적으로 높았고 실외 활동이 많은 그룹도 높은 관심도를 보인 것으로 나타났다.

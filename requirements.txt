@@ -3,3 +3,5 @@ langchain_ollama
 openai
 python-dotenv
 openpyxl
+langchain
+langchain_community

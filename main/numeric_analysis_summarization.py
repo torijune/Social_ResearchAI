@@ -5,6 +5,7 @@ from src.table_linearlization import linearize_flatten_schema, linearize_markdow
 from src.table_numeric_analysis import main as numeric_analysis
 
 from main.LLMs import ollama_responses, gpt_responses
+from prompt import prompting
 
 from langchain_ollama import ChatOllama
 
@@ -52,8 +53,9 @@ def Vanilla_Text_to_Summzarization(
     # LLM 인스턴스 생성
     model = ChatOllama(model=model_name, top_p=top_p, num_predict=num_predict)
 
+    prompt = prompting(linearized, analysis_results)
     # 요약 생성
-    summary = response_fn(linearized, analysis_results, model)
+    summary = response_fn(prompt, model)
 
     print(f"\n✅ 요약 결과 for [{selected_key}]: {selected_question}\n")
     print(summary)

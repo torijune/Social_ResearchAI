@@ -1,2 +1,4 @@
 *.env
 *.xlsx
+Notebook/
+*.DS_Store

@@ -1,4 +1,4 @@
-from prompt import prompt
+from main.prompt import prompt
 
 from langchain_ollama import ChatOllama
 from langchain_core.output_parsers import StrOutputParser

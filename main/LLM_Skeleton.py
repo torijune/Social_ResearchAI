@@ -1,6 +1,7 @@
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain, SequentialChain
 from langchain_community.chat_models import ChatOllama
+from langchain_openai import ChatOpenAI
 from textwrap import dedent
 
 from src.table_linearlization import linearize_row_wise
@@ -53,10 +54,13 @@ def get_skeleton_template():
 
 def get_summary_template():
     return PromptTemplate(
-        input_variables=["linearized_table", "skeleton", "analysis_results"],
+        input_variables=["question_text", "linearized_table", "skeleton", "analysis_results"],
         template=dedent("""
         당신은 객관적인 통계 기반 요약을 전문으로 하는 분석가입니다.
-        아래는 설문조사 데이터를 정리한 표이며, 각 행은 인구집단(예: 성별, 연령대), 각 열은 해당 집단의 응답 통계를 나타냅니다.
+        아래는 서울시 시민을 대상으로 한 설문조사의 데이터입니다.
+
+        ❓ [질문]
+        {question_text}
 
         📊 [표 데이터 (선형화된 형태)]
         {linearized_table}
@@ -69,8 +73,8 @@ def get_summary_template():
         {skeleton}
 
         🧠 Chain of Thought 추론 순서:
-        1. 표와 수치 분석 결과를 종합적으로 검토하여 의미 있는 패턴을 식별합니다.
-        2. 평균, 극단값, 표준편차 등 수치 기반의 차이를 중심으로 해석합니다.
+        1. 질문의 의도를 반영하여 표와 수치 분석 결과에서 의미 있는 패턴을 식별합니다.
+        2. 평균, 극단값, 표준편차 등 수치 기반 차이를 중심으로 해석합니다.
         3. 참고 요점과 비교하여 누락된 중요한 통계적 특징이 있다면 반영합니다.
 
         📝 작성 조건:
@@ -81,21 +85,76 @@ def get_summary_template():
         """)
     )
 
+def get_review_template():
+    return PromptTemplate(
+        input_variables=["question_text", "linearized_table", "summary"],
+        template=dedent("""
+        당신은 통계 기반 보고서를 검토하는 전문가입니다. 아래 설문 질문과 그에 대한 요약을 검토하고, 다음 기준에 따라 평가 및 개선 제안을 작성하세요.
 
-def run_summary_pipeline(table, linearized_table, analysis_results, model_name="llama-3.1-8B-instrcut:latest"):
-    llm = ChatOllama(model=model_name, temperature=0.3)
+        ❓ [질문]
+        {question_text}
+                        
+        📊 [표 데이터 (선형화된 형태)]
+        {linearized_table}
 
-    skeleton_chain = LLMChain(llm=llm, prompt=get_skeleton_template(), output_key="skeleton")
-    summary_chain = LLMChain(llm=llm, prompt=get_summary_template(), output_key="summary")
+        📝 [초안 요약]
+        {summary}
+
+        ✅ 검토 기준:
+        1. 요약이 질문의 의도와 관련된 핵심 정보를 충분히 담고 있는가?
+        2. 수치 기반 통계 정보가 적절히 반영되어 있는가?
+        3. 문장이 간결하고, 중복 표현 없이 명확한가?
+        4. 불필요한 반복, 부정확한 해석, 주관적 표현이 없는가?
+
+        🔎 출력 형식:
+        - 간단한 평가 (좋은 점, 개선점)
+        - 필요시 다듬은 버전 제안 (선택 사항)
+        """)
+    )
+
+def get_final_report_template():
+    return PromptTemplate(
+        input_variables=["question_text", "summary", "review"],
+        template=dedent("""
+        당신은 통계 기반 보고서를 최종 작성하는 전문가입니다.
+
+        아래는 작성된 요약과 이에 대한 리뷰 피드백입니다.
+        리뷰를 참고하여 최종 요약(report)을 보완/수정된 형태로 새로 작성하세요.
+
+        ❓ [질문]
+        {question_text}
+
+        📝 [초안 요약]
+        {summary}
+
+        🧐 [리뷰 피드백]
+        {review}
+
+        📌 작성 조건:
+        - 리뷰에서 지적된 개선사항을 반드시 반영하세요.
+        - 수치 기반 통계를 유지하고, 더 명확하고 간결하게 작성하세요.
+        - 문장은 서술형 문단 1~2개로 구성하고, 제목 없이 요약만 출력하세요.
+        """)
+    )
+
+def run_summary_pipeline(table, question_text, linearized_table, analysis_results, model_name="llama-3.1-8B-instrcut:latest"):
+    llm_main = ChatOllama(model=model_name, temperature=0.3)
+    llm_reviewer = ChatOpenAI(model="gpt-4o", temperature=0.2)
+
+    skeleton_chain = LLMChain(llm=llm_main, prompt=get_skeleton_template(), output_key="skeleton")
+    summary_chain = LLMChain(llm=llm_main, prompt=get_summary_template(), output_key="summary")
+    review_chain  = LLMChain(llm=llm_reviewer, prompt=get_review_template(), output_key="review")
+    final_report_chain = LLMChain(llm=llm_reviewer, prompt=get_final_report_template(), output_key="final_report")
 
     full_chain = SequentialChain(
-        chains=[skeleton_chain, summary_chain],
-        input_variables=["linearized_table", "analysis_results"],
-        output_variables=["skeleton", "summary"],
+        chains=[skeleton_chain, summary_chain, review_chain, final_report_chain],
+        input_variables=["question_text", "linearized_table", "analysis_results"],
+        output_variables=["skeleton", "summary", "review", "final_report"],
         verbose=True
     )
 
     return full_chain.invoke({
+        "question_text": question_text,
         "linearized_table": linearized_table,
         "analysis_results": analysis_results
     })
@@ -108,7 +167,7 @@ def main():
     linearized = linearize_row_wise(table)
     analysis = numeric_analysis(table)
 
-    result = run_summary_pipeline(table, linearized, analysis)
+    result = run_summary_pipeline(table, question_text, linearized, analysis)
 
     print("\n🔑 [스켈레톤 요점]")
     print(result["skeleton"])
@@ -120,6 +179,14 @@ def main():
 
     print(f"\n📝 [최종 요약 for {key}]")
     print(result["summary"])
+    print("-" * 20)
+
+    print("\n🧠 [GPT-4o 리뷰]")
+    print(result["review"])
+    print("-" * 20)
+
+    print(f"\n📄 [최종 Report (수정 완료)]")
+    print(result["final_report"])
 
 
 if __name__ == "__main__":
